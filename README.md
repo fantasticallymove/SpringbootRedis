@@ -3,3 +3,6 @@
 
 請使用以下連結獲取Redis 配置內容
 https://www.evernote.com/shard/s682/sh/d36d1660-557a-6340-224c-034cc0e14f9d/57ba8e413191e8f1215f67b12914c32e
+
+相關redis-Cli 可操作指令
+https://kknews.cc/zh-tw/code/9py6pel.html
