@@ -12,12 +12,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class TestController {
-    private AtomicInteger index = new AtomicInteger();
     private final RedisTemplate<String, Object> redisTemplate;
+    private RedisService service;
 
     @Autowired
-    public TestController(RedisTemplate<String, Object> redisTemplate) {
+    public TestController(RedisTemplate<String, Object> redisTemplate, RedisService service) {
         this.redisTemplate = redisTemplate;
+        this.service = service;
     }
 
     /**
@@ -62,5 +63,28 @@ public class TestController {
         } catch (Exception e) {
             return e.getMessage();
         }
+    }
+
+    /**
+     * 使用第一台主機寫
+     *
+     * @return
+     */
+    @GetMapping(value = "/getCache")
+    public String cache(HttpServletRequest request) {
+        StringBuilder sb;
+        String response;
+        try {
+            sb = new StringBuilder();
+            String text;
+            while ((text = request.getReader().readLine()) != null) {
+                sb.append(text);
+            }
+            JSONObject jsonObject = JSONObject.parseObject(sb.toString());
+            response = JSONObject.toJSONString(service.getCityKey(jsonObject.getString("key")));
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+        return response;
     }
 }
