@@ -1,16 +1,22 @@
 spring:
   redis:
-    host: node1
-    username: Test
     database: 0
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 1
+        max-wait: -1
+    cluster:
+      nodes:
+        - 192.168.50.133:6379
+        - 192.168.50.133:6380
+        - 192.168.50.133:6381
+        - 192.168.50.109:6379
+        - 192.168.50.109:6380
+        - 192.168.50.109:6381
     timeout: 6000ms
-    port: 6379
   application:
     name: redis-cluster-test
 server:
-  port: 8080
-
-redis:
-  read-only:
-    port: 6379
-    host: node2
+  port: 8443

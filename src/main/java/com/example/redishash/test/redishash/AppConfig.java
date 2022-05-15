@@ -1,35 +1,37 @@
 package com.example.redishash.test.redishash;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class AppConfig {
 
-    @Value("${redis.read-only.host}")
-    private String host;
+    /**
+     * Type safe representation of application.properties
+     */
+    @Autowired
+    ClusterConfigurationProperties clusterProperties;
 
-    @Value("${redis.read-only.port}")
-    private int port;
-
-    public RedisConnectionFactory connectionFactory() {
-        LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory(new RedisStandaloneConfiguration(host, port));
-        lettuceConnectionFactory.afterPropertiesSet();
-        return lettuceConnectionFactory;
+    public @Bean
+    RedisConnectionFactory connectionFactory() {
+        RedisClusterConfiguration redisClusterConfiguration = new RedisClusterConfiguration(clusterProperties.getNodes());
+        redisClusterConfiguration.setMaxRedirects(3);
+        JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory(redisClusterConfiguration);
+        jedisConnectionFactory.afterPropertiesSet();
+        return jedisConnectionFactory;
     }
 
-    @Bean(name = "read")
-    public RedisTemplate<String, Object> onlyReadRedisTemplate() {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        //請注意這邊要配String 是因為存進去是String 類型的key 沒設置將會啟用預設
-        template.setDefaultSerializer(new StringRedisSerializer());
-        template.setConnectionFactory(connectionFactory());
-        return template;
+    public @Bean
+    RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        RedisTemplate<String, Object> objectObjectRedisTemplate = new RedisTemplate<>();
+        objectObjectRedisTemplate.setDefaultSerializer(new StringRedisSerializer());
+        objectObjectRedisTemplate.setConnectionFactory(redisConnectionFactory);
+        return objectObjectRedisTemplate;
     }
 }

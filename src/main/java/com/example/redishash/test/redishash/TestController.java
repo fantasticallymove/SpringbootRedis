@@ -2,30 +2,22 @@ package com.example.redishash.test.redishash;
 
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class TestController {
-    //處理寫用的 redis
-    private final PersonRepository repo;
-    private final AtomicInteger index = new AtomicInteger(0);
-
-    @Qualifier(value = "read")
-    private final RedisTemplate<String, Object> readTemplate;
+    private AtomicInteger index = new AtomicInteger();
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    public TestController(PersonRepository repo, RedisTemplate<String, Object> readTemplate) {
-        this.readTemplate = readTemplate;
-        this.repo = repo;
+    public TestController(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
     }
 
     /**
@@ -35,40 +27,40 @@ public class TestController {
      */
     @GetMapping(value = "/redisHash")
     public String testRedis(HttpServletRequest request) {
-        Person person = new Person();
+        JSONObject jsonObject;
         try {
             StringBuilder sb = new StringBuilder();
             String text;
             while ((text = request.getReader().readLine()) != null) {
                 sb.append(text);
             }
-            JSONObject jsonObject = JSONObject.parseObject(sb.toString());
-            person.setName(jsonObject.getString("name") + index.incrementAndGet());
-            person.setAge(jsonObject.getIntValue("age"));
-            System.out.println(JSONObject.toJSONString(repo.save(person)));
+            jsonObject = JSONObject.parseObject(sb.toString());
+            redisTemplate.opsForSet().add(jsonObject.getString("name"), JSONObject.toJSONString(jsonObject));
         } catch (Exception e) {
-            return "exception";
+            return e.getMessage();
         }
-        return JSONObject.toJSONString(person);
+        return JSONObject.toJSONString(jsonObject);
     }
 
     /**
-     * 使用第二台從機讀
+     * 使用第一台主機寫
      *
      * @return
      */
     @GetMapping(value = "/get")
-    public String get() {
-        List<Person> personList = new ArrayList<>();
-        Iterator<Object> person = readTemplate.opsForSet().members("person").iterator();
-        while (person.hasNext()) {
-            String key = (String) person.next();
-            List<Object> values = readTemplate.opsForHash().values("person:" + key);
-            Person e = new Person();
-            e.setAge(Integer.parseInt(values.get(1).toString()));
-            e.setName(values.get(2).toString());
-            personList.add(e);
+    public String testRedisGet(HttpServletRequest request) {
+        JSONObject jsonObject;
+        try {
+            StringBuilder sb = new StringBuilder();
+            String text;
+            while ((text = request.getReader().readLine()) != null) {
+                sb.append(text);
+            }
+            jsonObject = JSONObject.parseObject(sb.toString());
+            Set<Object> joe = redisTemplate.opsForSet().members(jsonObject.getString("key"));
+            return JSONObject.toJSONString(joe);
+        } catch (Exception e) {
+            return e.getMessage();
         }
-        return JSONObject.toJSONString(personList);
     }
 }
